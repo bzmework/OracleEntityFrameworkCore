@@ -24,12 +24,12 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 ```
 Create Table MyTable   
 (   
-   blnValue1  number(1)        default 0   not null, -- bool(对应c#类型,下同)   
-   bytValue2  number(3)        default 0   not null, -- byte   
-   intValue3  number(10)       default 0   not null, -- int   
+   blnValue1  number(1)       default 0   not null, -- bool(对应c#类型,下同)   
+   bytValue2  number(3)       default 0   not null, -- byte   
+   intValue3  number(10)      default 0   not null, -- int   
    lngValue4  number(19)      default 0   not null, -- long   
-   dblValue5 number(29,9)    default 0   not null, -- double/decimal   
-   strValue6  varchar2(20)      default ' ' not null  -- string   
+   dblValue5  number(29,9)    default 0   not null, -- double/decimal   
+   strValue6  varchar2(20)    default ' ' not null  -- string   
 )   
 ```    
 然后这样定义模型：
