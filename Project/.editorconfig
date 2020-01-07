@@ -1,0 +1,37 @@
+﻿[*.cs]
+
+# IDE0047: 删除不必要的括号
+dotnet_diagnostic.IDE0047.severity = none
+
+# CA2007: 考虑对等待的任务调用 ConfigureAwait
+dotnet_diagnostic.CA2007.severity = none
+
+# CA2208: 正确实例化参数异常
+dotnet_diagnostic.CA2208.severity = none
+
+# CA1062: 验证公共方法的参数
+dotnet_diagnostic.CA1062.severity = none
+
+# CA1307: 指定 StringComparison
+dotnet_diagnostic.CA1307.severity = none
+
+# CA1305: 指定 IFormatProvider
+dotnet_diagnostic.CA1305.severity = none
+
+# CA1304: 指定 CultureInfo
+dotnet_diagnostic.CA1304.severity = none
+
+# CA1721: 属性名不应与 get 方法匹配
+dotnet_diagnostic.CA1721.severity = none
+
+# CA2100: 检查 SQL 查询是否存在安全漏洞
+dotnet_diagnostic.CA2100.severity = none
+
+# CA1716: 标识符不应与关键字匹配
+dotnet_diagnostic.CA1716.severity = none
+
+# CA1303: 请不要将文本作为本地化参数传递
+dotnet_diagnostic.CA1303.severity = none
+
+# CA2000: 丢失范围之前释放对象
+dotnet_diagnostic.CA2000.severity = none
