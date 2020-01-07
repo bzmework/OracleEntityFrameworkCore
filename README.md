@@ -19,14 +19,14 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 
 对于模型注解，建议您在设计表时这样设计：
 Create Table MyTable
-{
+(
    blnValue1  number(1)        default 0   not null, -- bool(对应c#类型,下同)
    bytValue2  number(3)        default 0   not null, -- byte
    intValue3  number(10)       default 0   not null, -- int
    lngValue4  number(19)      default 0   not null, -- long
    dblValue5 number(29,9)    default 0   not null, -- double/decimal
    strValue6  varchar2(20)      default ' ' not null  -- string
-}
+)
 
 然后这样定义模型：
 
