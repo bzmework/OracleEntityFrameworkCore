@@ -18,6 +18,7 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 当然，见仁见智，各有所好，这只是我们认为非常好的一种设计方式而已。   
    
 对于模型注解，建议您在设计表时这样设计：   
+
 Create Table MyTable   
 (   
    blnValue1  number(1)        default 0   not null, -- bool(对应c#类型,下同)   
@@ -32,9 +33,9 @@ Create Table MyTable
    
 [Table("MyTable")]   
 public class MyEntity   
-{   
-    [Column("blnValue", TypeName = "number(1)")]   
-    public bool Value1 { get; set; }   
+{     
+    [Column("blnValue", TypeName = "number(1)")]    
+    public bool Value1 { get; set; }    
        
     [Column("bytValue", TypeName = "number(3)")]   
     public byte Value2 { get; set; }   
