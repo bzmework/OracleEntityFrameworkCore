@@ -7,8 +7,11 @@ OracleEntityFrameworkCore是一个支持.net core的Oracle实体框架，支持1
 2、对模型注解时类型映射进行了优化，Oracle发布的官方版本和其它开源产品对带注解的模型的类型映射都存在缺陷。   
 3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，这是否是一种轻量级高效的数据处理方式？例如：
 ```
-List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights"); // 采用sql查询返回实体集合   
-DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights"); // 采用sql查询返回DataTable   
+// 采用sql查询返回实体集合   
+List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights");
+   
+// 采用sql查询返回DataTable   
+DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights"); 
 ```
    
 关于表的定义和模型设计：   
