@@ -1,6 +1,6 @@
 # OracleEntityFrameworkCore
 
-OracleEntityFrameworkCore是一个支持.net core的Oracle实体框架，支持11.2g及其以前版本和12c及其以后版本的Oracle数据库。本源码修正了Oracle官方最新发布的OracleEntityFrameworkCore(2.19.60)存在的缺陷。具体是：   
+OracleEntityFrameworkCore是一个支持.net core的Oracle实体框架，支持11.2g及其以前版本和12c及其以后版本的Oracle数据库。本源码修正了Oracle官方最新发布的OracleEntityFrameworkCore(2.19.60)存在的缺陷，对关键的一些部分进行了修正和增强。具体是：   
    
 1、去掉Linq生成SQL时加上引号(Oracle对引号的对象大小写敏感)，一个稳定可靠的系统在对象名称(表,字段等等)中不应该包含空格，因为不便于使用和管理；   
 2、对模型注解时类型映射进行了优化，Oracle发布的官方版本和其它开源产品对带注解的模型的类型映射都存在缺陷。   
