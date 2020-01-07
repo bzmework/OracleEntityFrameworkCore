@@ -5,9 +5,11 @@ OracleEntityFrameworkCore是一个支持.net core的Oracle实体框架，支持1
    
 1、去掉Linq生成SQL时加上引号(Oracle对引号的对象大小写敏感)，一个优秀的系统在对象名称(表,字段等等)中不应该包含空格，因为不便于使用和管理；   
 2、对模型注解时类型映射进行了优化，Oracle发布的官方版本和其它开源产品对带注解的模型的类型映射都存在缺陷。   
-3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，这是否是一种轻量级高效的数据处理方式？例如：   
+3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，这是否是一种轻量级高效的数据处理方式？例如：
+```
 List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights"); // 采用sql查询返回实体集合   
 DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights"); // 采用sql查询返回DataTable   
+```
    
 关于表的定义和模型设计：   
    
@@ -17,8 +19,9 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 写入的时候必须要求格式化成yyyy-MM-dd hh:mm:ss的统一标准格式，例如：2019-01-01   
 当然，见仁见智，各有所好，这只是我们认为非常好的一种设计方式而已。   
    
-对于模型注解，建议您在设计表时这样设计：   
-
+对于模型注解，建议您在设计表时这样设计：
+   
+```
 Create Table MyTable   
 (   
    blnValue1  number(1)        default 0   not null, -- bool(对应c#类型,下同)   
@@ -28,9 +31,10 @@ Create Table MyTable
    dblValue5 number(29,9)    default 0   not null, -- double/decimal   
    strValue6  varchar2(20)      default ' ' not null  -- string   
 )   
-   
-然后这样定义模型：   
-   
+```    
+然后这样定义模型：
+  
+```
 [Table("MyTable")]   
 public class MyEntity   
 {     
@@ -52,6 +56,7 @@ public class MyEntity
     [Column("strValue", TypeName = "varchar2(20)"), MaxLength(20)]   
     public string Value6 { get; set; }   
 }   
+```
    
 更多应用请参见测试示例。   
 在使用的同时请您继续完善并分享，谢谢！   
