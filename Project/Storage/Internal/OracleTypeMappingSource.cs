@@ -34,7 +34,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 		private readonly OracleUnboundedTypeMapping _unboundedUnicodeString = new OracleUnboundedTypeMapping("NCLOB", null, unicode: true);
 		private readonly OracleUnboundedTypeMapping _unboundedAnsiString = new OracleUnboundedTypeMapping("CLOB", null, unicode: true);
 
-		private readonly OracleBoolTypeMapping _bool = new OracleBoolTypeMapping("NUMBER(1)", DbType.Boolean);
+		private readonly OracleBoolTypeMapping _bool = new OracleBoolTypeMapping("NUMBER(1)", DbType.Byte);
 
 		private readonly ByteTypeMapping _sbyte = new OracleSByteTypeMapping("NUMBER(3)", DbType.Int16);
 		private readonly ByteTypeMapping _byte = new ByteTypeMapping("NUMBER(3)", DbType.Byte);
@@ -370,7 +370,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 									if (mappingInfo.Precision == 1 && clrType.Name == "Boolean")
 									{
-										result = new OracleBoolTypeMapping($"NUMBER({mappingInfo.Precision},{mappingInfo.Scale})", DbType.Boolean);
+										result = new OracleBoolTypeMapping($"NUMBER({mappingInfo.Precision},{mappingInfo.Scale})", DbType.Byte);
 									}
 									else if (mappingInfo.Precision <= 3 && clrType.Name == "Byte")
 									{
@@ -397,7 +397,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 								{
 									if (mappingInfo.Precision == 1 && clrType.Name == "Boolean")
 									{
-										result = new OracleBoolTypeMapping($"NUMBER({mappingInfo.Precision})", DbType.Boolean);
+										result = new OracleBoolTypeMapping($"NUMBER({mappingInfo.Precision})", DbType.Byte);
 									}
 									else if (mappingInfo.Precision <= 3 && clrType.Name == "Byte")
 									{

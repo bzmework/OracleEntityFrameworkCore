@@ -541,7 +541,7 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 		}
 
 		/// <summary>
-		/// 重写Select
+		/// 重写Select denglf
 		/// </summary>
 		/// <param name="selectExpression">Select表达式</param>
 		/// <returns></returns>
@@ -607,7 +607,6 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 					disposable = Sql.Indent();
 				}
 
-				// OrderBy处理
 				if ((selectExpression.OrderBy.Count > 0 && selectExpression.Limit != null) || selectExpression.Offset != null)
 				{
 					outerSelectRequired = true;
@@ -633,6 +632,7 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 						Sql.Append(SqlGenerator.DelimitIdentifier(selectExpression.ProjectStarTable.Alias)).Append(".*");
 						flag = true;
 					}
+
 					if (selectExpression.Projection.Count > 0)
 					{
 						if (selectExpression.IsProjectStar)
@@ -645,18 +645,29 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 							if (selectExpression.Projection[i] is ColumnExpression)
 							{
 								Sql.Append(" K" + i);
-								Sql.Append(" \"" + ((ColumnExpression)selectExpression.Projection[i]).Name + "\"");
+
+								//去掉字段名的引号
+								//Sql.Append(" \"" + ((ColumnExpression)selectExpression.Projection[i]).Name + "\"");
+								Sql.Append($" {((ColumnExpression)selectExpression.Projection[i]).Name}");
+
 								Sql.Append(",");
 							}
 							else if (selectExpression.Projection[i] is ColumnReferenceExpression)
 							{
 								Sql.Append(" K" + i);
-								Sql.Append(" \"" + ((ColumnReferenceExpression)selectExpression.Projection[i]).Name + "\"");
+
+								//去掉字段名的引号
+								//Sql.Append(" \"" + ((ColumnReferenceExpression)selectExpression.Projection[i]).Name + "\"");
+								Sql.Append($" {((ColumnReferenceExpression)selectExpression.Projection[i]).Name}");
+
 								Sql.Append(",");
 							}
 							else if (selectExpression.Projection[i] is AliasExpression)
 							{
-								Sql.Append(" \"" + ((AliasExpression)selectExpression.Projection[i]).Alias + "\"");
+								//去掉字段名的引号
+								//Sql.Append(" \"" + ((AliasExpression)selectExpression.Projection[i]).Alias + "\"");
+								Sql.Append($" {((AliasExpression)selectExpression.Projection[i]).Alias}");
+
 								Sql.Append(",");
 							}
 							else
@@ -665,24 +676,34 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 								Sql.Append(",");
 							}
 						}
+
 						if (selectExpression.Projection[generateProjectionCallCount - 1] is ColumnExpression)
 						{
 							Sql.Append(" K" + (generateProjectionCallCount - 1));
-							Sql.Append(" \"" + ((ColumnExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name + "\"");
+
+							//去掉字段名的引号
+							//Sql.Append(" \"" + ((ColumnExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name + "\"");
+							Sql.Append($" {((ColumnExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name}");
 						}
 						else if (selectExpression.Projection[generateProjectionCallCount - 1] is ColumnReferenceExpression)
 						{
 							Sql.Append(" K" + (generateProjectionCallCount - 1));
-							Sql.Append(" \"" + ((ColumnReferenceExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name + "\"");
+
+							//去掉字段名的引号
+							//Sql.Append(" \"" + ((ColumnReferenceExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name + "\"");
+							Sql.Append($" {((ColumnReferenceExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Name}");
 						}
 						else if (selectExpression.Projection[generateProjectionCallCount - 1] is AliasExpression)
 						{
-							Sql.Append(" \"" + ((AliasExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Alias + "\"");
+							//去掉字段名的引号
+							//Sql.Append(" \"" + ((AliasExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Alias + "\"");
+							Sql.Append($" {((AliasExpression)selectExpression.Projection[generateProjectionCallCount - 1]).Alias}");
 						}
 						else
 						{
 							Sql.Append(" K" + (generateProjectionCallCount - 1));
 						}
+
 						flag = true;
 					}
 					if (!flag)
@@ -702,7 +723,11 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 				{
 					Count++;
 					num = Count;
-					Sql.AppendLine("select \"m" + num + "\".*, rownum r" + num + " from");
+					
+					//去掉表别名的引号
+					//Sql.AppendLine("select \"m" + num + "\".*, rownum r" + num + " from");
+					Sql.AppendLine($"select m{num}.*, rownum r{num} from");
+
 					Sql.AppendLine("(");
 				}
 				Sql.Append("SELECT ");
@@ -788,11 +813,16 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 				}
 				if (selectExpression.Offset != null)
 				{
-					Sql.AppendLine().Append(") \"m" + num + "\"");
+					//去掉表别名的引号
+					//Sql.AppendLine().Append(") \"m" + num + "\"");
+					Sql.AppendLine().Append($") m{num}");
 				}
 				if ((selectExpression.OrderBy.Count > 0 && selectExpression.Limit != null) || selectExpression.Offset != null)
 				{
-					Sql.AppendLine().Append(") \"m" + aliasCount + "\"");
+					//去掉表别名的引号
+					//Sql.AppendLine().Append(") \"m" + aliasCount + "\"");
+					Sql.AppendLine().Append($") m{aliasCount}");
+
 					if (selectExpression.Limit != null && selectExpression.Offset == null)
 					{
 						Sql.AppendLine().Append("where rownum <= ");
@@ -800,14 +830,14 @@ namespace Oracle.EntityFrameworkCore.Query.Sql.Internal
 					}
 					if (selectExpression.Limit == null && selectExpression.Offset != null)
 					{
-						Sql.AppendLine().Append("where r" + num + " > ");
+						Sql.AppendLine().Append($"where r{num} > ");
 						Visit(selectExpression.Offset);
 					}
 					if (selectExpression.Limit != null && selectExpression.Offset != null)
 					{
-						Sql.AppendLine().Append("where r" + num + " > ");
+						Sql.AppendLine().Append($"where r{num} > ");
 						Visit(selectExpression.Offset);
-						Sql.AppendLine().Append("and r" + num + " <= (");
+						Sql.AppendLine().Append($"and r{num} <= (");
 						Visit(selectExpression.Offset);
 						Sql.Append(" + ");
 						Visit(selectExpression.Limit);
