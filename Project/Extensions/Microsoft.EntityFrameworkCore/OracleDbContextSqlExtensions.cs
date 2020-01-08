@@ -324,7 +324,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="db">数据库上下文</param>
         /// <param name="sql">执行的SQL语句</param>
         /// <returns>影响行数</returns>
-        public static int ExecuteNonQuery(this DbContext db, string sql)
+        public static int Execute(this DbContext db, string sql)
         {
             var concurrencyDetector = db.Database.GetService<IConcurrencyDetector>();
             using (concurrencyDetector.EnterCriticalSection())
@@ -357,7 +357,7 @@ namespace Microsoft.EntityFrameworkCore
         /// <param name="db">数据库上下文</param>
         /// <param name="sql">执行的SQL语句</param>
         /// <returns>影响行数</returns>
-        public static async Task<int> ExecuteNonQueryAsync(this DbContext db, string sql)
+        public static async Task<int> ExecuteAsync(this DbContext db, string sql)
         {
             var concurrencyDetector = db.Database.GetService<IConcurrencyDetector>();
             using (concurrencyDetector.EnterCriticalSection())
