@@ -60,7 +60,19 @@ public class MyEntity
 }   
 ```
    
-需要注意的是注解并不是必须的，更多应用请参见测试示例。      
+需要注意的是注解并不是必须的，例如： 
+```
+public class Right   
+{   
+   public long RightId { get; set; }   
+   public string RightName { get; set; }   
+   public string Content { get; set; }   
+   public string Description { get; set; }   
+}
+```
+此时Right就是数据库表的一个实体。   
+   
+更多应用请参见测试示例。   
    
 编译环境：   
 Windows 10   
