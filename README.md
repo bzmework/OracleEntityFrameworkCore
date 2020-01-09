@@ -70,9 +70,7 @@ public class Right
    public string Description { get; set; }   
 }
 ```
-此时Right就是数据库表的一个实体。   
-   
-更多应用请参见测试示例。   
+此时Right就是数据库表的一个直接实体。更多应用请参见测试示例。   
    
 编译环境：   
 Windows 10   
