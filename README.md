@@ -66,7 +66,6 @@ public class Right
 {   
    public long RightId { get; set; }   
    public string RightName { get; set; }   
-   public string Content { get; set; }   
    public string Description { get; set; }   
 }
 ```
