@@ -62,3 +62,8 @@ public class MyEntity
    
 需要注意的是注解并不是必须的，更多应用请参见测试示例。   
 在使用的同时请您继续完善并分享，谢谢！   
+   
+编译环境：   
+Windows 10   
+Visual Studio 2019   
+   
