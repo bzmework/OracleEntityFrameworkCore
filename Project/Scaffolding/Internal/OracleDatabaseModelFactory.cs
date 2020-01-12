@@ -191,6 +191,7 @@ namespace Oracle.EntityFrameworkCore.Scaffolding.Internal
 					dbCommand.CommandText = "SELECT s.sequence_name name, s.sequence_owner owner FROM all_sequences s ";
 					dbCommand.CommandText = dbCommand.CommandText + "WHERE " + schemaFilter("s.sequence_owner");
 				}
+
 				using (DbDataReader dbDataReader = dbCommand.ExecuteReader())
 				{
 					while (dbDataReader.Read())

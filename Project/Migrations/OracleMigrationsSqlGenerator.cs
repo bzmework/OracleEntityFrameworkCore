@@ -377,28 +377,73 @@ namespace Oracle.EntityFrameworkCore.Migrations
 			Check.NotNull(operation, nameof(operation));
 			Check.NotNull(builder, nameof(builder));
 
-			string text = SequencePrefix + NameSeparator + operation.Name;
-			if (Encoding.UTF8.GetByteCount(text) > MaxIdentifierLengthBytes)
-			{
-				text = DeriveObjectName(null, text);
-			}
 			string schema = operation.Schema;
-			string text2 = "";
-			text2 = ((schema != null)  
-				? ("\nbegin\nexecute immediate\n'drop sequence " + schema + "." + text + "';\nexception\nwhen others then\nif sqlcode <> -2289 then\nraise;\nend if;\nend;") 
-				: ("\nbegin\nexecute immediate\n'drop sequence " + text + "';\nexception\nwhen others then\nif sqlcode <> -2289 then\nraise;\nend if;\nend;"));
-			builder.AppendLine(text2).EndCommand();
-			
-			string text3 = TriggerPrefix + NameSeparator + operation.Name;
-			if (Encoding.UTF8.GetByteCount(text3) > MaxIdentifierLengthBytes)
+			string sql;
+
+			// 删除序列
+			string sequence = SequencePrefix + NameSeparator + operation.Name;
+			if (Encoding.UTF8.GetByteCount(sequence) > MaxIdentifierLengthBytes)
 			{
-				text3 = DeriveObjectName(null, text3);
+				sequence = DeriveObjectName(null, sequence);
 			}
-			string text4 = "";
-			text4 = ((schema != null) 
-				? ("\nbegin\nexecute immediate\n'drop trigger " + schema + "." + text3 + "';\nexception\nwhen others then\nif sqlcode <> -4080 then\nraise;\nend if;\nend;") 
-				: ("\nbegin\nexecute immediate\n'drop trigger " + text3 + "';\nexception\nwhen others then\nif sqlcode <> -4080 then\nraise;\nend if;\nend;"));
-			builder.AppendLine(text4).EndCommand();
+			if (schema != null)
+			{
+				sql = new StringBuilder()
+					.AppendLine($"begin")
+					.AppendLine($"  execute immediate 'drop sequence {schema}.{sequence}';")
+					.AppendLine($"exception")
+					.AppendLine($"  when others then")
+					.AppendLine($"    if sqlcode <> -2289 then")
+					.AppendLine($"        raise;")
+					.AppendLine($"    end if;")
+					.AppendLine($"end;").ToString();
+			}
+			else
+			{
+				sql = new StringBuilder()
+					.AppendLine($"begin")
+					.AppendLine($"  execute immediate 'drop sequence {sequence}';")
+					.AppendLine($"exception")
+					.AppendLine($"  when others then")
+					.AppendLine($"    if sqlcode <> -2289 then")
+					.AppendLine($"        raise;")
+					.AppendLine($"    end if;")
+					.AppendLine($"end;").ToString();
+			}
+			builder.AppendLine(sql).EndCommand();
+			
+			// 删除触发器
+			string trigger = TriggerPrefix + NameSeparator + operation.Name;
+			if (Encoding.UTF8.GetByteCount(trigger) > MaxIdentifierLengthBytes)
+			{
+				trigger = DeriveObjectName(null, trigger);
+			}
+			if (schema != null)
+			{
+				sql = new StringBuilder()
+					.AppendLine($"begin")
+					.AppendLine($"  execute immediate 'drop trigger {schema}.{trigger}';")
+					.AppendLine($"exception")
+					.AppendLine($"  when others then")
+					.AppendLine($"    if sqlcode <> -4080 then")
+					.AppendLine($"        raise;")
+					.AppendLine($"    end if;")
+					.AppendLine($"end;").ToString();
+			}
+			else
+			{
+				sql = new StringBuilder()
+					.AppendLine($"begin")
+					.AppendLine($"  execute immediate 'drop trigger {trigger}';")
+					.AppendLine($"exception")
+					.AppendLine($"  when others then")
+					.AppendLine($"    if sqlcode <> -4080 then")
+					.AppendLine($"        raise;")
+					.AppendLine($"    end if;")
+					.AppendLine($"end;").ToString();
+			}
+			builder.AppendLine(sql).EndCommand();
+
 		}
 
 		private static void DropIdentity(
@@ -408,22 +453,21 @@ namespace Oracle.EntityFrameworkCore.Migrations
 			Check.NotNull(operation, nameof(operation));
 			Check.NotNull(builder, nameof(builder));
 
-			// var commandText = "\nDECLARE\n   v_Count INTEGER;\nBEGIN\n  SELECT COUNT(*) INTO v_Count\n  FROM ALL_TAB_IDENTITY_COLS T\n  WHERE T.TABLE_NAME = N'" + operation.Table + "'\n  AND T.COLUMN_NAME = '" + operation.Name + "';\n  IF v_Count > 0 THEN\n    EXECUTE IMMEDIATE 'ALTER  TABLE \"" + operation.Table + "\" MODIFY \"" + operation.Name + "\" DROP IDENTITY';\n  END IF;\nEND;";
-			var commandText = $@"
-                DECLARE
-                   v_Count INTEGER;
-                BEGIN
-                  SELECT COUNT(*) INTO v_Count
-                  FROM ALL_TAB_IDENTITY_COLS T
-                  WHERE T.TABLE_NAME = N'{operation.Table}'
-                  AND T.COLUMN_NAME = '{operation.Name}';
-                  IF v_Count > 0 THEN
-                    EXECUTE IMMEDIATE 'ALTER  TABLE ""{operation.Table}"" MODIFY ""{operation.Name}"" DROP IDENTITY';
-                  END IF;
-                END;";
+			var sql = new StringBuilder()
+				.AppendLine($"DECLARE")
+				.AppendLine($"   v_Count INTEGER;")
+				.AppendLine($"BEGIN")
+				.AppendLine($"  SELECT COUNT(*) INTO v_Count")
+				.AppendLine($"  FROM ALL_TAB_IDENTITY_COLS T")
+				.AppendLine($"  WHERE T.TABLE_NAME = N'{operation.Table.ToUpper()}'")
+				.AppendLine($"  AND T.COLUMN_NAME = '{operation.Name}';")
+				.AppendLine($"  IF v_Count > 0 THEN")
+				.AppendLine($"    EXECUTE IMMEDIATE 'ALTER  TABLE {operation.Table} MODIFY {operation.Name} DROP IDENTITY';")
+				.AppendLine($"  END IF;")
+				.AppendLine($"END;").ToString();
 
 			builder
-				.AppendLine(commandText)
+				.AppendLine(sql)
 				.EndCommand();
 		}
 
@@ -703,7 +747,7 @@ namespace Oracle.EntityFrameworkCore.Migrations
 				builder
 					.Append("select count(*) from all_users where username=")
 					.Append("'")
-					.Append(operation.Name)
+					.Append(operation.Name.ToUpper())
 					.Append("'")
 					.EndCommand();
 			}
@@ -745,7 +789,13 @@ namespace Oracle.EntityFrameworkCore.Migrations
 				Check.NotNull(operation, nameof(operation));
 				Check.NotNull(builder, nameof(builder));
 
-				builder.Append("BEGIN\n                             EXECUTE IMMEDIATE 'CREATE USER " + operation.UserName + " IDENTIFIED BY " + operation.UserName + "';\n                             EXECUTE IMMEDIATE 'GRANT DBA TO " + operation.UserName + "';\n                           END;").EndCommand(suppressTransaction: true);
+				string sql = new StringBuilder()
+					.AppendLine($"BEGIN")
+					.AppendLine($"  EXECUTE IMMEDIATE 'CREATE USER {operation.UserName} IDENTIFIED BY {operation.UserName}';")
+					.AppendLine($"  EXECUTE IMMEDIATE 'GRANT DBA TO {operation.UserName}';")
+					.AppendLine($"END;").ToString();
+
+				builder.Append(sql).EndCommand(suppressTransaction: true);
 			}
 			catch (Exception ex)
 			{
@@ -782,7 +832,15 @@ namespace Oracle.EntityFrameworkCore.Migrations
 				Check.NotNull(operation, nameof(operation));
 				Check.NotNull(builder, nameof(builder));
 
-				builder.Append("BEGIN\n                         FOR v_cur IN (SELECT sid, serial# FROM v$session WHERE username = '" + operation.UserName.ToUpperInvariant() + "') LOOP\n                            EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || v_cur.sid || ',' || v_cur.serial# || ''' IMMEDIATE');\n                         END LOOP;\n                         EXECUTE IMMEDIATE 'DROP USER " + operation.UserName + " CASCADE';\n                       END;").EndCommand(suppressTransaction: true);
+				string sql = new StringBuilder()
+					.AppendLine($"BEGIN")
+					.AppendLine($"  FOR v_cur IN (SELECT sid, serial# FROM v$session WHERE username = '{operation.UserName.ToUpperInvariant()}') LOOP")
+					.AppendLine($"      EXECUTE IMMEDIATE ('ALTER SYSTEM KILL SESSION ''' || v_cur.sid || ',' || v_cur.serial# || ''' IMMEDIATE');")
+					.AppendLine($"  END LOOP;")
+					.AppendLine($"  EXECUTE IMMEDIATE 'DROP USER {operation.UserName} CASCADE';")
+					.AppendLine($"END;").ToString();
+
+				builder.Append(sql).EndCommand(suppressTransaction: true);
 			}
 			catch (Exception ex)
 			{
@@ -853,6 +911,7 @@ namespace Oracle.EntityFrameworkCore.Migrations
 
 				Check.NotNull(operation, nameof(operation));
 				Check.NotNull(builder, nameof(builder));
+
 				builder.Append("DROP INDEX ").Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Name));
 				if (terminate)
 				{
@@ -893,12 +952,14 @@ namespace Oracle.EntityFrameworkCore.Migrations
 
 				Check.NotNull(operation, nameof(operation));
 				Check.NotNull(builder, nameof(builder));
+
 				StringBuilder stringBuilder = new StringBuilder();
 				if (operation.Schema != null)
 				{
 					stringBuilder.Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Schema)).Append(".");
 				}
 				stringBuilder.Append(Dependencies.SqlGenerationHelper.DelimitIdentifier(operation.Table));
+
 				builder
 					.Append("ALTER TABLE ")
 					.Append(stringBuilder)
@@ -942,11 +1003,13 @@ namespace Oracle.EntityFrameworkCore.Migrations
 
 				Check.NotNull(operation, nameof(operation));
 				Check.NotNull(builder, nameof(builder));
+
 				StringBuilder stringBuilder = new StringBuilder();
 				foreach (ModificationCommand item in operation.GenerateModificationCommands(model))
 				{
 					SqlGenerator.AppendInsertOperation(stringBuilder, item, 0);
 				}
+
 				builder
 					.AppendLine("BEGIN")
 					.Append(stringBuilder)
@@ -1174,9 +1237,12 @@ namespace Oracle.EntityFrameworkCore.Migrations
 			if (Operation == "insert")
 			{
 				builder.Append("  if :new.");
-				builder.Append("\"");
+
+				//去掉列名的引号
+				//builder.Append("\"");
 				builder.Append(ColumnName);
-				builder.Append("\"");
+				//builder.Append("\"");
+
 				builder.Append(" is NULL then ");
 				builder.AppendLine();
 			}
@@ -1185,9 +1251,12 @@ namespace Oracle.EntityFrameworkCore.Migrations
 			builder.Append(".nextval ");
 			builder.Append("into ");
 			builder.Append(":new.");
-			builder.Append("\"");
+
+			//去掉列名的引号
+			//builder.Append("\"");
 			builder.Append(ColumnName);
-			builder.Append("\"");
+			//builder.Append("\"");
+
 			builder.Append(" from dual;  ");
 			builder.AppendLine();
 			if (Operation == "insert")

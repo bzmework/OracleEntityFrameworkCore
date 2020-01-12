@@ -152,7 +152,8 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 					Trace<DbLoggerCategory.Update>.Write(m_oracleLogger, LogLevel.Trace, OracleTraceTag.Entry, OracleTraceClassName.OracleModificationCommandBatch, OracleTraceFuncName.CreateStoreCommand);
 				}
 
-				var ommandBuilder = _commandBuilderFactory.Create().Append(GetCommandText());
+				var commandText = GetCommandText();
+				var ommandBuilder = _commandBuilderFactory.Create().Append(commandText);
 				var parameterValues = new Dictionary<string, object>(GetParameterCount());
 
 				foreach (ColumnModification item in ModificationCommands.SelectMany((ModificationCommand t) => t.ColumnModifications))
@@ -295,14 +296,23 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 				}
 
 				new StringBuilder();
+
+				// The list of conceptual insert/update/delete 
+				// Microsoft.EntityFrameworkCore.Update.ReaderModificationCommandBatch.ModificationCommandss
+				// in the batch.
+				// 取得待处理的插入/更新/删除行的概念性命令，这意味着你应该对真实的执行命令自己进行组装
 				ModificationCommand modificationCommand = ModificationCommands[commandPosition];
+
+				// 对命令进行组装
 				if (modificationCommand.EntityState == EntityState.Added)
 				{
+					// Add命令
 					if (_batchInsertCommands.Count > 0 && !CanBeInserted(_batchInsertCommands.First().Key, modificationCommand))
 					{
 						CachedCommandText.Append(GetBatchInsertCommandText(commandPosition));
 						_batchInsertCommands.Clear();
 					}
+
 					if (ModificationCommands[commandPosition].ColumnModifications.Where((ColumnModification o) => o.IsRead).ToArray().Length != 0)
 					{
 						_batchInsertCommands.Add(modificationCommand, _cursorPosition);
@@ -316,11 +326,13 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 				}
 				else if (modificationCommand.EntityState == EntityState.Deleted)
 				{
+					// Delete命令
 					CachedCommandText.Append(GetBatchDeleteCommandText(commandPosition));
 					LastCachedCommandIndex = commandPosition;
 				}
 				else
 				{
+					// Update命令
 					CachedCommandText.Append(GetBatchUpdateCommandText(commandPosition));
 					LastCachedCommandIndex = commandPosition;
 				}

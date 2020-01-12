@@ -313,7 +313,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 				string storeTypeName = mappingInfo.StoreTypeName;
 				string storeTypeNameBase = mappingInfo.StoreTypeNameBase;
 
-				// 当模型字段指定了类型名称(TypeName)以后，则从存储类型映射表中查找，例如:
+				// 当模型字段指定了类型名称(TypeName)以后，则从存储类型映射表中查找
 				if (storeTypeName != null)
 				{
 					if (Check.IsTraceEnabled(m_oracleLogger?.Logger))
@@ -475,7 +475,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 					if (clrType == typeof(string))
 					{
-						// 采用最大兼容原则
+						// 字符串采用最大兼容原则
 						bool isAnsi = mappingInfo.IsUnicode == false;
 						bool isFixedLength = mappingInfo.IsFixedLength == true;
 						string baseName = (isAnsi ? "" : "N") + (isFixedLength ? "CHAR" : "VARCHAR2");

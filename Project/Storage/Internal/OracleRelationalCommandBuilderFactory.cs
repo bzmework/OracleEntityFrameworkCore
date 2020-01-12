@@ -58,7 +58,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 				}
 
 				/// <summary>
-				/// Ö´ÐÐ
+				/// Ö´ÐÐ denglf
 				/// </summary>
 				/// <param name="connection"></param>
 				/// <param name="executeMethod"></param>
@@ -248,14 +248,17 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 						DbCommand dbCommand = connection.DbConnection.CreateCommand();
 						((OracleCommand)dbCommand).BindByName = true;
 						dbCommand.CommandText = CommandText;
+
 						if (connection.CurrentTransaction != null)
 						{
 							dbCommand.Transaction = connection.CurrentTransaction.GetDbTransaction();
 						}
+
 						if (connection.CommandTimeout.HasValue)
 						{
 							dbCommand.CommandTimeout = connection.CommandTimeout.Value;
 						}
+
 						if (Parameters.Count > 0)
 						{
 							if (parameterValues == null)
@@ -267,6 +270,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 								parameter.AddDbParameter(dbCommand, parameterValues);
 							}
 						}
+
 						return dbCommand;
 					}
 					catch (Exception ex)

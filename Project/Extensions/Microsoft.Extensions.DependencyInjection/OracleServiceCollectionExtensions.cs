@@ -39,9 +39,10 @@ namespace Microsoft.Extensions.DependencyInjection
 		{
 			Check.NotNull(serviceCollection, nameof(serviceCollection));
 
-			new EntityFrameworkRelationalServicesBuilder(serviceCollection)
+			// 注册服务。仅当实体框架服务的实现尚未注册时添加。服务的范围由实体框架自己定义。
+			var builder = new EntityFrameworkRelationalServicesBuilder(serviceCollection)
 				.TryAdd<IDatabaseProvider, DatabaseProvider<OracleOptionsExtension>>()
-				.TryAdd((Func<IServiceProvider, IValueGeneratorCache>)((IServiceProvider p) => p.GetService<IOracleValueGeneratorCache>()))
+				.TryAdd<IValueGeneratorCache>(p => p.GetService<IOracleValueGeneratorCache>())
 				.TryAdd<IRelationalTypeMappingSource, OracleTypeMappingSource>()
 				.TryAdd<ISqlGenerationHelper, OracleSqlGenerationHelper>()
 				.TryAdd<IMigrationsAnnotationProvider, OracleMigrationsAnnotationProvider>()
@@ -51,7 +52,7 @@ namespace Microsoft.Extensions.DependencyInjection
 				.TryAdd<ISingletonUpdateSqlGenerator, OracleUpdateSqlGenerator>()
 				.TryAdd<IModificationCommandBatchFactory, OracleModificationCommandBatchFactory>()
 				.TryAdd<IValueGeneratorSelector, OracleValueGeneratorSelector>()
-				.TryAdd((Func<IServiceProvider, IRelationalConnection>)((IServiceProvider p) => p.GetService<IOracleConnection>()))
+				.TryAdd<IRelationalConnection>(p => p.GetService<IOracleConnection>())
 				.TryAdd<IMigrationsSqlGenerator, OracleMigrationsSqlGenerator>()
 				.TryAdd<IRelationalDatabaseCreator, OracleDatabaseCreator>()
 				.TryAdd<IHistoryRepository, OracleHistoryRepository>()
@@ -64,14 +65,16 @@ namespace Microsoft.Extensions.DependencyInjection
 				.TryAdd<IRelationalCommandBuilderFactory, OracleRelationalCommandBuilderFactory>()
 				.TryAdd<IMigrationCommandExecutor, OracleMigrationCommandExecutor>()
 				.TryAdd<ISingletonOptions, IOracleOptions>((IServiceProvider p) => p.GetService<IOracleOptions>())
-				.TryAddProviderSpecificServices(delegate(ServiceCollectionMap b)
+				.TryAddProviderSpecificServices(delegate (ServiceCollectionMap b)
 				{
 					b.TryAddSingleton<IOracleValueGeneratorCache, OracleValueGeneratorCache>()
 					 .TryAddSingleton<IOracleOptions, OracleOptions>()
 					 .TryAddScoped<IOracleSequenceValueGeneratorFactory, OracleSequenceValueGeneratorFactory>()
 					 .TryAddScoped<IOracleConnection, OracleRelationalConnection>();
-				})
-				.TryAddCoreServices();
+				});
+
+			// 尝试将服务注册到内核。数据库提供程序必须在服务注册的最后一步调用此方法，即在所有提供程序服务注册之后。
+			builder.TryAddCoreServices();
 
 			return serviceCollection;
 		}

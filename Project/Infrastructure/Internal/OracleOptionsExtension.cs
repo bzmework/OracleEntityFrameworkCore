@@ -1,4 +1,6 @@
 using System.Text;
+using System.Collections.Generic;
+using System.Globalization;
 using JetBrains.Annotations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -131,7 +133,7 @@ namespace Oracle.EntityFrameworkCore.Infrastructure.Internal
 				Trace<DbLoggerCategory.Infrastructure>.Write(m_oracleLogger, LogLevel.Trace, OracleTraceTag.Entry, OracleTraceClassName.OracleOptionsExtensions, OracleTraceFuncName.GetServiceProviderHashCode);
 			}
 
-			if (!_serviceProviderHash.HasValue)
+			if (_serviceProviderHash == null)
 			{
 				_serviceProviderHash = ((base.GetServiceProviderHashCode() * 397) ^ (_oracleSQLCompatibility?.GetHashCode() ?? 0));
 			}
@@ -145,7 +147,7 @@ namespace Oracle.EntityFrameworkCore.Infrastructure.Internal
 		}
 
 		/// <summary>
-		/// 使用服务
+		/// 应用服务
 		/// </summary>
 		/// <param name="services">服务集合</param>
 		/// <returns></returns>

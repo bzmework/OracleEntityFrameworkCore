@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Common;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using JetBrains.Annotations;
@@ -24,20 +25,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 	/// </summary>
 	public class OracleDatabaseCreator : RelationalDatabaseCreator
 	{
-		internal static string cleanSchemaPLSQL1 =  "BEGIN\n            FOR cur_rec IN(SELECT object_name, object_type\n              FROM user_objects\n              WHERE object_type IN\n              ('TABLE',\n                'VIEW',\n                'PACKAGE',\n                'PROCEDURE',\n                'FUNCTION',\n                'SYNONYM',\n                'SEQUENCE'\n              ) ";
-
-		internal static string cleanSchemaPLSQL2 = ")\n            LOOP\n              BEGIN\n                IF cur_rec.object_type = 'TABLE'\n                  THEN\n                    EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' \"' || SYS_CONTEXT('userenv','current_schema') || '\".\"' || cur_rec.object_name || '\" CASCADE CONSTRAINTS';\n                  ELSE\n                    EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' \"' || SYS_CONTEXT('userenv','current_schema') || '\".\"' || cur_rec.object_name || '\"';\n                END IF;\n                EXCEPTION\n                  WHEN OTHERS\n                  THEN\n                  DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' \"' ||SYS_CONTEXT('userenv','current_schema') || '\".\"' || cur_rec.object_name || '\"');\n              END;\n            END LOOP;\n          END;";
-
-		internal static string cleanSchemaPLSQL3 = "BEGIN\n            FOR cur_rec IN(SELECT object_name, object_type, owner \n              FROM all_objects\n              WHERE object_type IN\n              ('TABLE',\n                'VIEW',\n                'PACKAGE',\n                'PROCEDURE',\n                'FUNCTION',\n                'SYNONYM',\n                'SEQUENCE'\n              ) ";
-
-		internal static string notOracleMaintained = " oracle_maintained='N' ";
-
-		internal static string cleanSchemaPLSQL4 = ")\n            LOOP\n              BEGIN\n                IF cur_rec.object_type = 'TABLE'\n                  THEN\n                    EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' \"' || cur_rec.owner || '\".\"' || cur_rec.object_name || '\" CASCADE CONSTRAINTS';\n                  ELSE\n                    EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' \"' || cur_rec.owner || '\".\"' || cur_rec.object_name || '\"';\n                END IF;\n                EXCEPTION\n                  WHEN OTHERS\n                  THEN\n                  DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' \"' || cur_rec.owner || '\".\"' || cur_rec.object_name || '\"');\n              END;\n            END LOOP;\n          END;";
-
-		internal static string and = " AND ";
-
-		internal static string schemaFilterSQLUser = " owner IN ({0}) ";
-
+		// 用户列表
 		internal static string[] builtInSchemas = new string[42]
 		{
 			"ANONYMOUS",
@@ -83,8 +71,6 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 			"OJVMSYS",
 			"OLAPSYS"
 		};
-
-		internal static string schemaFilterSQLInternal = " owner NOT IN ({0}) ";
 
 		internal string _oracleSQLCompatibility = "12";
 
@@ -181,6 +167,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 					}
 					throw new Exception("Schema does not exist");
 				}
+
 				((OracleMigrationCommandExecutor)Dependencies.MigrationCommandExecutor).ExecuteNonQuery(list2, Dependencies.Connection);
 			}
 			catch (Exception ex)
@@ -220,6 +207,7 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 					OracleConnectionStringBuilder val = (OracleConnectionStringBuilder)(object)new OracleConnectionStringBuilder(_connection.DbConnection.ConnectionString);
 					Trace<DbLoggerCategory.Database>.Write(m_oracleLogger, LogLevel.Trace, OracleTraceTag.Connection, OracleTraceClassName.OracleDatabaseCreator, OracleTraceFuncName.Exists, $"Tables exist for user {val.UserID} : {flag}");
 				}
+
 				return flag;
 			}
 			catch (Exception ex)
@@ -317,12 +305,14 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 		private IRelationalCommand CreateHasTablesCommand()
 		{
-			return _rawSqlCommandBuilder.Build("SELECT COUNT(*) FROM user_tables where sys_context('userenv', 'current_schema') NOT in (" + string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'")) + ")");
+			string sql = "SELECT COUNT(*) FROM user_tables where sys_context('userenv', 'current_schema') NOT in (" + string.Join(",", builtInSchemas.Select(x => $"'{x}'")) + ")";
+			return _rawSqlCommandBuilder.Build(sql);
 		}
 
 		private IRelationalCommand CreateHasAllTablesCommand(string filter)
 		{
-			return _rawSqlCommandBuilder.Build("SELECT COUNT(*) FROM all_tables WHERE " + string.Format(schemaFilterSQLUser, filter) + and + string.Format(schemaFilterSQLInternal, string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))));
+			string sql = "SELECT COUNT(*) FROM all_tables WHERE " + string.Format("owner IN({0})", filter) + " AND " + string.Format("owner NOT IN({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+			return _rawSqlCommandBuilder.Build(sql);
 		}
 
 		private IEnumerable<MigrationCommand> CreateCreateOperations()
@@ -557,13 +547,49 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 				_connection.Open();
 				DbCommand dbCommand = _connection.DbConnection.CreateCommand();
+
+				// 删除数据库对象：表、视图、函数...
 				if (_oracleSQLCompatibility == "11")
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL1 + and + string.Format(" sys_context('userenv', 'current_schema') NOT IN ({0}) ", string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + cleanSchemaPLSQL2;
+					string where = string.Format("sys_context('userenv', 'current_schema') NOT IN ({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type FROM user_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+					dbCommand.CommandText = sql;
 				}
 				else
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL1 + and + string.Format(" sys_context('userenv', 'current_schema') NOT IN ({0}) ", string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + and + notOracleMaintained + cleanSchemaPLSQL2;
+					string where = string.Format("sys_context('userenv', 'current_schema') NOT IN ({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type FROM user_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND oracle_maintained='N' AND {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+					dbCommand.CommandText = sql;
 				}
 
 				if (Check.IsTraceEnabled(m_oracleLogger?.Logger))
@@ -627,13 +653,57 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 				_connection.Open();
 				DbCommand dbCommand = _connection.DbConnection.CreateCommand();
+
+				// 删除数据库对象：表、视图、函数...
 				if (_oracleSQLCompatibility == "11")
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL3 + and + (schemaFilter.Equals("*") ? string.Empty : string.Format(schemaFilterSQLUser, schemaFilter)) + and + string.Format(schemaFilterSQLInternal, string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + cleanSchemaPLSQL4;
+					string where = 
+						" AND " + (schemaFilter.Equals("*") ? string.Empty : string.Format("owner IN ({0})", schemaFilter)) + 
+						" AND " + string.Format("owner NOT IN({0})", string.Join(",", builtInSchemas.Select((x => $"'{x}'")))); 
+					
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type, owner FROM all_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+					
+					dbCommand.CommandText = sql;
 				}
 				else
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL3 + and + (schemaFilter.Equals("*") ? string.Empty : string.Format(schemaFilterSQLUser, schemaFilter)) + and + string.Format(schemaFilterSQLInternal, string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + and + notOracleMaintained + cleanSchemaPLSQL4;
+					string where = 
+						" AND " + (schemaFilter.Equals("*") ? string.Empty : string.Format("owner IN ({0})", schemaFilter)) +
+						" AND " + string.Format("owner NOT IN({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type, owner FROM all_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND oracle_maintained='N' {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+
+					dbCommand.CommandText = sql;
 				}
 
 				if (Check.IsTraceEnabled(m_oracleLogger?.Logger))
@@ -699,13 +769,58 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 
 				_connection.Open();
 				DbCommand dbCommand = _connection.DbConnection.CreateCommand();
+
+				// 删除数据库对象：表、视图、函数...
 				if (_oracleSQLCompatibility == "11")
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL3 + and + (schemaFilter.Equals("*") ? string.Empty : string.Format(schemaFilterSQLUser, schemaFilter)) + and + string.Format(schemaFilterSQLInternal, string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + cleanSchemaPLSQL4;
+					string where =
+						" AND " + (schemaFilter.Equals("*") ? string.Empty : string.Format("owner IN ({0})", schemaFilter)) +
+						" AND " + string.Format("owner NOT IN({0})", string.Join(",", builtInSchemas.Select((x => $"'{x}'"))));
+
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type, owner FROM all_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+
+					dbCommand.CommandText = sql;
+
 				}
 				else
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL3 + and + (schemaFilter.Equals("*") ? string.Empty : string.Format(schemaFilterSQLUser, schemaFilter)) + and + string.Format(schemaFilterSQLInternal, string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + and + notOracleMaintained + cleanSchemaPLSQL4;
+					string where =
+						" AND " + (schemaFilter.Equals("*") ? string.Empty : string.Format("owner IN ({0})", schemaFilter)) +
+						" AND " + string.Format("owner NOT IN({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type, owner FROM all_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND oracle_maintained='N' {where})")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || cur_rec.owner || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+
+					dbCommand.CommandText = sql;
 				}
 
 				if (Check.IsTraceEnabled(m_oracleLogger?.Logger))
@@ -772,11 +887,45 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 				DbCommand dbCommand = _connection.DbConnection.CreateCommand();
 				if (_oracleSQLCompatibility == "11")
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL1 + and + string.Format(" sys_context('userenv', 'current_schema') NOT IN ({0}) ", string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + cleanSchemaPLSQL2;
+					string where = string.Format("sys_context('userenv', 'current_schema') NOT IN ({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type FROM user_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND " + where + ")")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+					dbCommand.CommandText = sql;
 				}
 				else
 				{
-					dbCommand.CommandText = cleanSchemaPLSQL1 + and + string.Format(" sys_context('userenv', 'current_schema') NOT IN ({0}) ", string.Join(", ", builtInSchemas.Select((string x) => "'" + x + "'"))) + and + notOracleMaintained + cleanSchemaPLSQL2;
+					string where = string.Format("sys_context('userenv', 'current_schema') NOT IN ({0})", string.Join(",", builtInSchemas.Select(x => $"'{x}'")));
+					string sql = new StringBuilder()
+						.AppendLine($"BEGIN")
+						.AppendLine($"  FOR cur_rec IN(SELECT object_name, object_type FROM user_objects WHERE object_type IN('TABLE','VIEW','PACKAGE','PROCEDURE','FUNCTION','SYNONYM','SEQUENCE') AND oracle_maintained='N' AND " + where + ")")
+						.AppendLine($"  LOOP")
+						.AppendLine($"    BEGIN")
+						.AppendLine($"      IF cur_rec.object_type = 'TABLE' THEN")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name || ' CASCADE CONSTRAINTS';")
+						.AppendLine($"      ELSE")
+						.AppendLine($"          EXECUTE IMMEDIATE 'DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name;")
+						.AppendLine($"      END IF;")
+						.AppendLine($"    EXCEPTION")
+						.AppendLine($"      WHEN OTHERS THEN")
+						.AppendLine($"          DBMS_OUTPUT.put_line('FAILED: DROP ' || cur_rec.object_type || ' ' || SYS_CONTEXT('userenv','current_schema') || '.' || cur_rec.object_name);")
+						.AppendLine($"    END;")
+						.AppendLine($"  END LOOP;")
+						.AppendLine($"END;").ToString();
+					dbCommand.CommandText = sql;
 				}
 				await dbCommand.ExecuteNonQueryAsync(cancellationToken);
 
@@ -882,17 +1031,20 @@ namespace Oracle.EntityFrameworkCore.Storage.Internal
 				}
 				list.Add(schema);
 			}
+
 			string userID = new OracleConnectionStringBuilder(_connection.DbConnection.ConnectionString).UserID;
 			userID = userID.Trim();
 			userID = ((!userID.StartsWith("\"") || !userID.EndsWith("\"")) ? userID.ToUpper() : userID.Trim(new char[1]
 			{
 				'"'
 			}));
+
 			userID = userID.Replace("'", "''");
 			if (!list.Contains(userID))
 			{
 				list.Add(userID);
 			}
+
 			return string.Join(", ", list.Select((string x) => "'" + x + "'"));
 		}
 	}

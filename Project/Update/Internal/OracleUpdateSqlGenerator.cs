@@ -88,6 +88,7 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 				{
 					name = OracleMigrationsSqlGenerator.DeriveObjectName(null, name, num);
 				}
+
 				string nameVariable = $"{name}_{commandPosition}";
 				if (reads.Length != 0)
 				{
@@ -102,7 +103,12 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 						stringBuilder
 							.AppendJoin(reads, delegate(StringBuilder sb, ColumnModification cm)
 							{
-								sb.Append("\"" + cm.ColumnName + "\"").Append(" ").AppendLine(GetVariableType(cm));
+								//去掉列名的引号
+								//sb.Append("\"" + cm.ColumnName + "\"").Append(" ").AppendLine(GetVariableType(cm));
+								sb
+								.Append(cm.ColumnName)
+								.Append(" ")
+								.AppendLine(GetVariableType(cm));
 							}, ",")
 							.Append(")")
 							.AppendLine(SqlGenerationHelper.StatementTerminator);
@@ -417,7 +423,9 @@ namespace Oracle.EntityFrameworkCore.Update.Internal
 						sb.Append("l").Append(name).Append("(")
 							.Append(commandPosition + 1)
 							.Append(").")
-							.Append("\"" + o.ColumnName + "\"");
+							//去掉列名的引号
+							//.Append("\"" + o.ColumnName + "\"");
+							.Append(o.ColumnName);
 					}, ",")
 					.Append(" FROM DUAL")
 					.AppendLine(SqlGenerationHelper.StatementTerminator);
