@@ -1,9 +1,9 @@
 # OracleEntityFrameworkCore
 
-OracleEntityFrameworkCore是一个支持.net core的Oracle实体框架，支持11.2g及其以前版本和12c及其以后版本的Oracle数据库。修正了Oracle官方最新发布的OracleEntityFrameworkCore(2.19.60)存在的缺陷，对关键的一些部分进行了修正和增强。具体是：   
+OracleEntityFrameworkCore是一个.Net Core的Oracle实体框架，其目标是应用于大型项目，支持11.2g及其以前版本和12c及其以后版本的Oracle数据库。修正了Oracle官方最新发布的OracleEntityFrameworkCore(2.19.60)存在的缺陷。对一些关键部分进行了完善，具体是：   
    
 1、去掉Linq生成SQL时加上引号(Oracle对引号的对象大小写敏感)，一个稳定可靠的系统在对象名称(表,字段等等)中不应该包含空格，这不便于使用和管理，因此加上引号没有必要；   
-2、对模型注解时类型映射进行了优化，Oracle发布的官方版本和其它开源产品对带注解的模型的类型映射都存在缺陷。   
+2、对模型注解时类型映射进行了优化。   
 3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，这是否是一种轻量高效的数据处理方式(返璞归真)？例如：
 ```
 // 采用sql查询返回实体集合   
@@ -60,10 +60,18 @@ public class MyEntity
 }   
 ```
    
-需要注意的是注解并不是必须的，更多应用请参见测试示例。   
-在使用的同时请您继续完善并分享，谢谢！   
+需要注意的是注解并不是必须的，例如： 
+```
+public class Right   
+{   
+   public long RightId { get; set; }   
+   public string RightName { get; set; }   
+   public string Description { get; set; }   
+}
+```
+此时Right就是数据库表的一个直接实体。更多应用请参见测试示例。   
    
 编译环境：   
 Windows 10   
 Visual Studio 2019   
-   
+ 
