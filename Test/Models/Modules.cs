@@ -15,26 +15,26 @@ namespace ConsoleApp
         ///<summary>
         /// 模块ID 
         ///</summary> 
-        [Key, Column("lngModuleID", TypeName = "number(19)")]
+        [Key, Column("lngModuleID", TypeName = "number")]
         public long ModuleID { get; set; }
 
         ///<summary>
         /// 模块名称
         ///</summary> 
-        [Required, Column("strModuleName", TypeName = "varchar2(100)"), MaxLength(100)]
+        [Required, Column("strModuleName", TypeName = "varchar2"), MaxLength(100)]
         public string ModuleName { get; set; }
 
         ///<summary>
         /// 模块描述 
         ///</summary> 
-        [Column("strDescription", TypeName = "varchar2(100)"), MaxLength(200)]
+        [Column("strDescription", TypeName = "varchar2"), MaxLength(200)]
         [Required]
         public string Description { get; set; } 
 
         ///<summary>
         /// 封存标志 
         ///</summary> 
-        [Column("blnIsInActive", TypeName = "number(10)")]
+        [Column("blnIsInActive", TypeName = "number")]
         public bool IsInActive { get; set; } 
     }
 }

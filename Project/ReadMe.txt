@@ -20,4 +20,6 @@ https://www.oracle.com/database/technologies/article-oledb-features.html  （ Or
 https://www.oracle.com/database/technologies/net-downloads.html （Oracle Data Access Components .NET Downloads）
 https://www.oracle.com/technetwork/cn/topics/dotnet/utilsoft-086879-zhs.html （ODAC 12c 中文版）
 https://github.com/oracle/dotnet-db-samples （ Oracle数据库.NET 开发官方示例）
+https://blog.csdn.net/rrrrssss00/article/details/7178515/ （.net中使用ODP.net访问Oracle数据库（无客户端部署方法））
+https://www.cnblogs.com/zouhao/p/9000286.html （C#连接Oracle数据库的方法(Oracle.DataAccess.Client也叫ODP.net)）
 https://docs.oracle.com/cd/E85694_01/ODPNT/toc.htm （Data Provider for .NET Developer's Guide）

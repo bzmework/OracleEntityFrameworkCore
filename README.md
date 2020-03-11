@@ -11,8 +11,36 @@ List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights");
    
 // 采用sql查询返回DataTable   
 DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights"); 
+
+// 存储过程调用：
+
+// 调用Oracle函数
+var num = db.CallFunc<int>("ReturnNumberTest", 100);
+var str = db.CallFunc<string>("ReturnStringTest", "");
+var date = db.CallFunc<DateTime>("ReturnDateTest", DateTime.Now);
+// 调用Oracle函数(带参数返回)
+var paramList = new List<object[]>()
+{
+    new object[] {"In", 100 },
+    new object[] {"Out", DateTime.Now },
+    new object[] {"InOut", "hello" }
+};
+var valueList = new List<object>();
+num = db.CallFunc<int>("OutParamFuncTest", paramList, valueList);
+
+// 调用Oracle过程
+var ok = db.CallProc("ProcTest", DateTime.Now);
+// 调用Oracle过程(带参数返回)
+paramList = new List<object[]>()
+{
+    new object[] {"In", 100 },
+    new object[] {"Out", DateTime.Now },
+    new object[] {"InOut", "hello" }
+};
+valueList = new List<object>();
+ok = db.CallProc("OutParamProcTest", paramList, valueList);
 ```
-   
+  
 关于表的定义和模型设计：   
    
 根据以往的经验，在我们的系统中习惯于用匈牙利命名法来命名表的字段，   
@@ -70,7 +98,12 @@ public class Right
 }
 ```
 此时Right就是数据库表的一个直接实体。更多应用请参见测试示例。   
-   
+
+```补充说明```   
+前面建议对于日期类型的字段建议设计成字符串varchar2(20) 。但在实践中会发现许多组件是根据数据类型进行校验绑定的，
+例如DevExtreme组件根据日期类型绑定日期控件、JQuery校验根据日期类型进行等，此时如果将日期字段设计成字符串就不能满足需求，
+但是日期字段的最大问题是客户端日期格式和服务器日期格式一致性问题，这会给软件后期维护带来困境，这就是为什么将日期字段设计成字符串varchar2(20) 的原因。   
+
 编译环境：   
 Windows 10   
 Visual Studio 2019   

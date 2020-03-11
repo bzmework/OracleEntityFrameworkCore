@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Oracle.EntityFrameworkCore": {
+      "commandName": "Project",
+      "nativeDebugging": false
+    }
+  }
+}

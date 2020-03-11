@@ -18,18 +18,41 @@ namespace ConsoleApp
 
             using (OracleDbContext db = new OracleDbContext())
             {
-               
-                // Linq查询
-                var query = from r in db.Rights
-                            where r.RightsID == 1000 &&
-                                r.RightsCode == "002" &&
-                                r.ModuleID == 1
-                            select r; // 创建查询
-                var result = query.FirstOrDefault(); // 执行查询
+                //List<object[]> paramList1 = new List<object[]>()
+                //{
+                //    new object[] {"In", "Account" },
+                //    new object[] {"In", $"strAccountCode" },
+                //    new object[] {"In", 1002 },
+                //    new object[] {"In", 1000 },
+                //    new object[] {"Out", "Error" }
+                //};
+                //List<object> valueList1 = new List<object>();
+                //var ret = db.CallFunc<byte>("CardCodeMerge", paramList1, valueList1);
+
+                var v = db.DepartmentTypes.FirstOrDefault<DepartmentType>();
+
+                //关联查询
+                var x = (from p in db.Rights
+                         join q in db.Modules
+                         on p.ModuleID equals q.ModuleID
+                         select new { p.RightsID, p.RightsCode, p.RightsName, q.ModuleName })
+                         .OrderBy(e => e.RightsCode)
+                         .Skip(1) // 取第1页
+                         .Take(6) // 每页6条
+                         .ToList();
 
                 // Linq查询
-                var query2 = db.Rights.Where(s => s.RightsCode == "0010001");
-                var result2 = query.FirstOrDefault();
+                var query = from deptTypes in db.DepartmentTypes
+                            where deptTypes.DepartmentTypeID == 1000 &&
+                                deptTypes.DepartmentTypeCode == "002" &&
+                                deptTypes.OrganizationID == 1
+                            select deptTypes; // 创建查询
+                var result = query.Skip(0).Take(2).ToList(); // 执行查询
+
+
+                // Linq查询
+                var varOther = db.Rights.Where(s => s.RightsCode == "0010001");
+                var varDuplicate = varOther.FirstOrDefault();
 
                 // 存储过程调用
                 var cmd = db.Database.GetDbConnection().CreateCommand();
@@ -43,11 +66,9 @@ namespace ConsoleApp
                 param0.OracleDbType = OracleDbType.Double;
                 param0.Direction = ParameterDirection.ReturnValue;
                 cmd.Parameters.Add(param0);
-
+                 
                 OracleParameter param1 = new OracleParameter();
-                //param1.ParameterName = ":lngCurrencyID_in";
-                //param1.ParameterName = "@lngCurrencyID_in";
-                param1.OracleDbType = OracleDbType.Int32;
+                param1.OracleDbType = OracleDbType.Double;
                 param1.Direction = ParameterDirection.Input;
                 param1.Value = 1;
                 cmd.Parameters.Add(param1);
@@ -57,6 +78,34 @@ namespace ConsoleApp
                 var retValue = param0.Value;
                 //var retValue = cmd.ExecuteReader(); 
                 cmd.Connection.Close();
+
+                // 调用Oracle函数
+                var num = db.CallFunc<int>("ReturnNumberTest", 100);
+                var str = db.CallFunc<string>("ReturnStringTest", "");
+                var date = db.CallFunc<DateTime>("ReturnDateTest", DateTime.Now);
+
+                // 调用Oracle函数(带参数返回)
+                var paramList = new List<object[]>()
+                {
+                    new object[] {"In", 100 },
+                    new object[] {"Out", DateTime.Now },
+                    new object[] {"InOut", "hello" }
+                };
+                var valueList = new List<object>();
+                num = db.CallFunc<int>("OutParamFuncTest", paramList, valueList);
+
+                // 调用Oracle过程
+                var ok = db.CallProc("ProcTest", DateTime.Now);
+
+                // 调用Oracle过程(带参数返回)
+                paramList = new List<object[]>()
+                {
+                    new object[] {"In", 100 },
+                    new object[] {"Out", DateTime.Now },
+                    new object[] {"InOut", "hello" }
+                };
+                valueList = new List<object>();
+                ok = db.CallProc("OutParamProcTest", paramList, valueList);
 
                 // 采用sql查询返回实体集合
                 List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights");
@@ -99,8 +148,8 @@ namespace ConsoleApp
                 var pageList = db.Rights
                     .Where(e => e.ModuleID == 1)
                     .OrderBy(e => e.RightsCode)
-                    .Skip(2) 
-                    .Take(2)
+                    .Skip(2) // 取第2页
+                    .Take(2) // 每页2条
                     .ToList();
                 Console.WriteLine($"分页查询权限：{pageList.Count}");
 
@@ -129,8 +178,10 @@ namespace ConsoleApp
                     rightList.Add(item);
                 }
                 db.AddRange(rightList);
-                db.SaveChanges();
+                db.SaveChanges(); // 注意：如果保存成功会立即生效，其它修改、删除一样。
                 */
+
+
 
                 // 批量删除权限
                 //db.RemoveRange(db.Rights.Where(e => rightList.Select(t => t.RightsID).Contains(e.RightsID)));
@@ -163,16 +214,6 @@ namespace ConsoleApp
 
                 // 保存新增、修改、删除
                 db.SaveChanges();
-
-                //关联查询
-                var x = (from p in db.Rights
-                         join q in db.Modules
-                         on p.ModuleID equals q.ModuleID
-                         select new { p.RightsID, p.RightsCode, p.RightsName, q.ModuleName })
-                         .OrderBy(e => e.RightsCode)
-                         .Skip(1) // 取第1页
-                         .Take(6) // 每页6条
-                         .ToList();
 
             }
 
