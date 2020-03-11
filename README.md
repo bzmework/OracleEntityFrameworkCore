@@ -15,12 +15,12 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 
 4、简化存储过程调用，例如：   
 ```
-// 调用Oracle函数
+// 调用函数
 var num = db.CallFunc<int>("ReturnNumberTest", 100);
 var str = db.CallFunc<string>("ReturnStringTest", "");
 var date = db.CallFunc<DateTime>("ReturnDateTest", DateTime.Now);
 
-// 调用Oracle函数(带参数返回)
+// 调用函数(带参数返回)
 var paramList = new List<object[]>()
 {
     new object[] {"In", 100 },
@@ -30,10 +30,10 @@ var paramList = new List<object[]>()
 var valueList = new List<object>();
 num = db.CallFunc<int>("OutParamFuncTest", paramList, valueList);
 
-// 调用Oracle过程
+// 调用过程
 var ok = db.CallProc("ProcTest", DateTime.Now);
 
-// 调用Oracle过程(带参数返回)
+// 调用过程(带参数返回)
 paramList = new List<object[]>()
 {
     new object[] {"In", 100 },
