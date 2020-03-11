@@ -11,9 +11,10 @@ List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights");
    
 // 采用sql查询返回DataTable   
 DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights"); 
+```
 
-// 存储过程调用：
-
+4、简化存储过程调用，例如：   
+```
 // 调用Oracle函数
 var num = db.CallFunc<int>("ReturnNumberTest", 100);
 var str = db.CallFunc<string>("ReturnStringTest", "");
