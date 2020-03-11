@@ -4,7 +4,7 @@ OracleEntityFrameworkCore是一个.Net Core的Oracle实体框架，其目标是�
    
 1、去掉Linq生成SQL时加上引号(Oracle对引号的对象大小写敏感)，一个稳定可靠的系统在对象名称(表,字段等等)中不应该包含空格，这不便于使用和管理，因此加上引号没有必要；   
 2、对模型注解时类型映射进行了优化。   
-3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，这是否是一种轻量高效的数据处理方式(返璞归真)？例如：
+3、支持原生SQL查询返回实体作为数据源，以方便用Linq在内存中查询数据，例如：
 ```
 // 采用sql查询返回实体集合   
 List<Rights> listRights = db.ExecuteQuery<Rights>("select * from Rights");
