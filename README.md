@@ -19,6 +19,7 @@ DataTable dt = db.ExecuteQuery("select lngRightsID, strRightsCode from Rights");
 var num = db.CallFunc<int>("ReturnNumberTest", 100);
 var str = db.CallFunc<string>("ReturnStringTest", "");
 var date = db.CallFunc<DateTime>("ReturnDateTest", DateTime.Now);
+
 // 调用Oracle函数(带参数返回)
 var paramList = new List<object[]>()
 {
@@ -31,6 +32,7 @@ num = db.CallFunc<int>("OutParamFuncTest", paramList, valueList);
 
 // 调用Oracle过程
 var ok = db.CallProc("ProcTest", DateTime.Now);
+
 // 调用Oracle过程(带参数返回)
 paramList = new List<object[]>()
 {
